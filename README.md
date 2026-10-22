@@ -2,7 +2,7 @@
 
 Groundwork is a 3D map for missionary companionships that shows where they, and the companionships before them, have walked and worked in their area over the last six months, then suggests where to work today. Walked streets glow by how often they were covered and fade as the work ages, so a street knocked months ago reads as new ground again. A "Plan my day" button ranks the area's zones on neglect, recent success, and walking distance to today's appointments, asks Claude to pick three places with a one-sentence reason each, and draws the walking route from the nearest appointment. History, not surveillance: there are no live locations and no individual tracking.
 
-**Live:** deploying to Vercel, link to follow
+**Live:** https://groundwork-inky-three.vercel.app
 
 ## Stack
 
