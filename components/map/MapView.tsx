@@ -5,7 +5,7 @@ import mapboxgl from "mapbox-gl";
 import { MapboxOverlay } from "@deck.gl/mapbox";
 import type { PickingInfo } from "@deck.gl/core";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { area, bbox } from "@/lib/data";
+import { area, bbox, streets } from "@/lib/data";
 import { walkedSegments } from "@/lib/data/segments";
 import type { Action, Companionship, Walk } from "@/lib/data/types";
 import { buildLayers } from "./layers";
@@ -189,7 +189,7 @@ export default function MapView({ walks, actions, companionships, columns }: Pro
   useEffect(() => {
     if (!ready || !overlay.current) return;
     overlay.current.setProps({
-      layers: buildLayers({ segments, actions, current, columns, beforeId: labelLayerId }),
+      layers: buildLayers({ streets, segments, actions, current, columns, beforeId: labelLayerId }),
       getTooltip: ({ object, layer }: PickingInfo<Action>) => {
         if (!object || !layer?.id.startsWith("actions-")) return null;
         const when = new Date(object.time).toLocaleString("en-US", {

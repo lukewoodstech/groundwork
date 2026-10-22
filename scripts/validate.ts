@@ -15,6 +15,7 @@ const walks = load<Walk[]>("walks");
 const actions = load<Action[]>("actions");
 const appointments = load<Appointment[]>("appointments");
 const zones = load<Zone[]>("zones");
+const streets = load<[number, number][][]>("streets");
 const planted = load<{
   neglectedZoneId: string;
   nearbyZoneId: string;
@@ -38,6 +39,8 @@ check(walks.every((w) => w.path.every(inside)), "walk point outside the area");
 check(actions.every((a) => inside(a.lngLat)), "action outside the area");
 check(zones.every((z) => z.polygon.every(inside)), "zone vertex outside the area");
 check(appointments.every((a) => inside(a.lngLat)), "appointment outside the area");
+check(streets.every((s) => s.every(inside)), "street point outside the area");
+check(zones.length >= 5 && zones.length <= 8, `expected 5 to 8 zones, got ${zones.length}`);
 
 // 2. Walk timestamps ascend.
 check(
@@ -101,7 +104,7 @@ check(
 
 const streetLines = planted.successStreet.line.map((l) => turf.lineString(l));
 const nearStreet = (a: Action) =>
-  streetLines.some((l) => turf.pointToLineDistance(a.lngLat, l, { units: "meters" }) < 25);
+  streetLines.some((l) => turf.pointToLineDistance(a.lngLat, l, { units: "meters" }) < 18);
 const recentContacts = actions.filter((a) => a.type === "contact" && daysAgo(a.time) <= 30);
 const onStreet = recentContacts.filter(nearStreet);
 const rate = (list: Action[]) => list.filter((a) => a.outcome === "lesson_set").length / Math.max(1, list.length);

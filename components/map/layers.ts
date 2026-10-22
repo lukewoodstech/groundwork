@@ -10,6 +10,8 @@ import type { Action, ActionType } from "@/lib/data/types";
 export const HEX_RESOLUTION = 10;
 
 type Hex = { hex: string; count: number; daysAgo: number; isUs: boolean };
+type RGBA = [number, number, number, number];
+type Street = { path: [number, number][] };
 
 const daysAgo = (t: number) => (TODAY.getTime() - t) / DAY_MS;
 
@@ -34,14 +36,39 @@ export function binActions(actions: Action[], current: Set<string>): Hex[] {
   return [...bins.values()];
 }
 
-const colorFor = (isUs: boolean, age: number): RGB =>
-  ageColor(isUs ? US : PREV, age);
+const colorFor = (isUs: boolean, age: number): RGB => ageColor(isUs ? US : PREV, age);
 
 // In interleaved mode deck.gl reads `beforeId` to slot layers into the
 // Mapbox layer stack, but LayerProps does not declare it.
 const under = (beforeId?: string) => ({ beforeId }) as object;
 
+/** Walked once, a few times, or often. Thresholds come from the data. */
+export type Level = 1 | 2 | 3;
+
+export function levelThreshold(segments: Segment[]) {
+  const repeat = segments.map((s) => s.count).filter((c) => c >= 2).sort((a, b) => a - b);
+  if (!repeat.length) return 3;
+  // Top 30% of repeat-walked streets count as "often".
+  return Math.max(3, repeat[Math.floor(repeat.length * 0.7)]);
+}
+
+export const levelOf = (count: number, often: number): Level => (count <= 1 ? 1 : count >= often ? 3 : 2);
+
+// Widths in metres so streets stay crisp zoomed out and thicken as you zoom
+// in. Minimum pixel widths keep the three levels distinct at any zoom, and
+// each level is its own layer because the minimum applies per layer.
+const CORE: Record<Level, { w: number; min: number; a: number }> = {
+  1: { w: 2, min: 0.9, a: 105 },
+  2: { w: 5, min: 1.8, a: 210 },
+  3: { w: 9, min: 3.4, a: 255 },
+};
+const GLOW: Record<2 | 3, { w: number; min: number; a: number }> = {
+  2: { w: 16, min: 5, a: 45 },
+  3: { w: 34, min: 11, a: 110 },
+};
+
 type Input = {
+  streets: Street[];
   segments: Segment[];
   actions: Action[];
   current: Set<string>;
@@ -49,23 +76,10 @@ type Input = {
   beforeId?: string;
 };
 
-export function buildLayers({ segments, actions, current, columns, beforeId }: Input): Layer[] {
-  const maxCount = Math.max(1, ...segments.map((s) => s.count));
-  // How often a segment was walked, 0..1, with diminishing returns.
-  const freq = (s: Segment) => Math.log1p(s.count) / Math.log1p(maxCount);
+export function buildLayers({ streets, segments, actions, current, columns, beforeId }: Input): Layer[] {
+  const often = levelThreshold(segments);
+  const level = (s: Segment) => levelOf(s.count, often);
   const segColor = (s: Segment) => colorFor(current.has(s.companionshipId), daysAgo(s.lastTime));
-
-  const path = (id: string, opts: Partial<ConstructorParameters<typeof PathLayer<Segment>>[0]>) =>
-    new PathLayer<Segment>({
-      id,
-      data: segments,
-      ...under(beforeId),
-      widthUnits: "meters",
-      jointRounded: true,
-      capRounded: true,
-      getPath: (d) => d.path,
-      ...opts,
-    });
 
   const byType = (t: ActionType) => actions.filter((a) => a.type === t);
   const dotColor = (d: Action) => colorFor(current.has(d.companionshipId), daysAgo(d.time));
@@ -90,7 +104,19 @@ export function buildLayers({ segments, actions, current, columns, beforeId }: I
       ...opts,
     });
 
-  const layers: Layer[] = [];
+  const layers: Layer[] = [
+    // Every street in the area, faint, so unwalked ones still read as streets.
+    new PathLayer<Street>({
+      id: "streets",
+      data: streets,
+      ...under(beforeId),
+      widthUnits: "meters",
+      widthMinPixels: 1,
+      getWidth: 2.5,
+      getColor: [74, 74, 80, 150],
+      getPath: (d) => d.path,
+    }),
+  ];
 
   if (columns) {
     const hexes = binActions(actions, current);
@@ -113,21 +139,30 @@ export function buildLayers({ segments, actions, current, columns, beforeId }: I
     );
   }
 
+  // Walked streets: a soft glow for repeat visits under a core line whose
+  // width and opacity step up with each level.
+  const byLevel: Record<Level, Segment[]> = { 1: [], 2: [], 3: [] };
+  for (const s of segments) byLevel[level(s)].push(s);
+  const walked = (id: string, data: Segment[], style: { w: number; min: number; a: number }) =>
+    new PathLayer<Segment>({
+      id,
+      data,
+      ...under(beforeId),
+      widthUnits: "meters",
+      widthMinPixels: style.min,
+      jointRounded: true,
+      capRounded: true,
+      getPath: (d) => d.path,
+      getWidth: style.w,
+      getColor: (d) => [...segColor(d), style.a] as RGBA,
+    });
+
   layers.push(
-    // Walked streets: a soft wide glow under a bright core.
-    // Widths are in metres so the streets stay crisp when zoomed out and
-    // thicken naturally as you zoom in.
-    path("walk-glow", {
-      widthMinPixels: 3,
-      getWidth: (d) => 12 + 18 * freq(d),
-      getColor: (d) => [...segColor(d), 22 + 40 * freq(d)] as [number, number, number, number],
-    }),
-    path("walk-core", {
-      widthMinPixels: 1.2,
-      widthMaxPixels: 6,
-      getWidth: (d) => 3.5 + 4 * freq(d),
-      getColor: (d) => [...segColor(d), 150 + 105 * freq(d)] as [number, number, number, number],
-    }),
+    walked("walk-glow-few", byLevel[2], GLOW[2]),
+    walked("walk-glow-often", byLevel[3], GLOW[3]),
+    walked("walk-core-once", byLevel[1], CORE[1]),
+    walked("walk-core-few", byLevel[2], CORE[2]),
+    walked("walk-core-often", byLevel[3], CORE[3]),
     // Actions: tiny marks on the walked streets.
     dot("actions-knock", byType("knock"), {
       filled: true,

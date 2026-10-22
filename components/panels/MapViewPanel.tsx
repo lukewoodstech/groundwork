@@ -97,6 +97,12 @@ export default function MapViewPanel({ filters, onChange, counts, total }: Props
           <span>Recent</span>
           <span>Older</span>
         </div>
+        <div className="mt-3 grid grid-cols-4 gap-2 border-t border-line pt-3">
+          <Travel label="Not walked" level={0} />
+          <Travel label="Once" level={1} />
+          <Travel label="A few times" level={2} />
+          <Travel label="Often" level={3} />
+        </div>
       </section>
     </aside>
   );
@@ -162,6 +168,23 @@ function KeyRow({ label, color }: { label: string; color: RGB }) {
         className="h-[6px] flex-1"
         style={{ background: `linear-gradient(90deg, ${rgb(color)}, ${rgb(FADED)})` }}
       />
+    </div>
+  );
+}
+
+// How often a street was walked, as drawn on the map, in grey.
+function Travel({ label, level }: { label: string; level: 0 | 1 | 2 | 3 }) {
+  const core = [1, 1.2, 2.2, 3.6][level];
+  const alpha = [0.3, 0.5, 0.8, 1][level];
+  return (
+    <div className="flex flex-col items-center gap-1.5">
+      <svg width="48" height="14" viewBox="0 0 48 14" aria-hidden>
+        {level >= 2 && (
+          <line x1="4" y1="7" x2="44" y2="7" stroke="#a3a3a8" strokeWidth={level === 3 ? 11 : 7} strokeLinecap="round" opacity={level === 3 ? 0.28 : 0.16} />
+        )}
+        <line x1="4" y1="7" x2="44" y2="7" stroke="#d4d4d8" strokeWidth={core} strokeLinecap="round" opacity={alpha} />
+      </svg>
+      <span className="text-center text-[10px] leading-tight text-ink-3">{label}</span>
     </div>
   );
 }

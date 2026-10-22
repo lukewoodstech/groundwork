@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { filterActions } from "@/lib/data/filter";
 import { actions, companionships, walks } from "@/lib/data";
+import { daysAgoOf, rangeMs, type TimeRange } from "@/lib/data/time";
 import type { ActionType, Filters } from "@/lib/data/types";
 import Header from "./panels/Header";
 import MapViewPanel from "./panels/MapViewPanel";
@@ -25,28 +26,38 @@ export default function Groundwork() {
     columns: false,
   });
 
-  const visible = useMemo(
-    () => filterActions(actions, companionships, filters),
-    [filters],
-  );
-  const visibleWalks = useMemo(() => {
-    if (filters.who === "all") return walks;
-    const current = new Set(companionships.filter((c) => c.isCurrent).map((c) => c.id));
-    return walks.filter((w) => current.has(w.companionshipId) === (filters.who === "us"));
-  }, [filters.who]);
+  // Month ending today. The missionary toggle and the time window are
+  // independent: each narrows the same data.
+  const [time, setTime] = useState<TimeRange>({ period: "month", endDay: 0 });
+  const [start, end] = rangeMs(time);
 
-  // Per-type counts for the chosen missionaries, independent of the toggles,
-  // so a row's number does not vanish when it is switched off.
+  // Everything by the chosen missionaries, all time. Feeds the calendar dots.
+  const byWho = useMemo(
+    () => filterActions(actions, companionships, { who: filters.who, activity: ALL_ACTIVITY, columns: false }),
+    [filters.who],
+  );
+  const activeDays = useMemo(() => new Set(byWho.map((a) => daysAgoOf(a.time))), [byWho]);
+
+  const inWindow = useMemo(() => byWho.filter((a) => a.time >= start && a.time < end), [byWho, start, end]);
+  const visible = useMemo(() => inWindow.filter((a) => filters.activity[a.type]), [inWindow, filters.activity]);
+
+  const visibleWalks = useMemo(() => {
+    const current = new Set(companionships.filter((c) => c.isCurrent).map((c) => c.id));
+    return walks.filter(
+      (w) =>
+        w.timestamps[0] >= start &&
+        w.timestamps[0] < end &&
+        (filters.who === "all" || current.has(w.companionshipId) === (filters.who === "us")),
+    );
+  }, [filters.who, start, end]);
+
+  // Per-type counts in the window, independent of the toggles, so a row's
+  // number does not vanish when it is switched off.
   const counts = useMemo(() => {
-    const pool = filterActions(actions, companionships, {
-      who: filters.who,
-      activity: ALL_ACTIVITY,
-      columns: false,
-    });
     const c: Record<ActionType, number> = { knock: 0, contact: 0, lesson: 0 };
-    for (const a of pool) c[a.type] += 1;
+    for (const a of inWindow) c[a.type] += 1;
     return c;
-  }, [filters.who]);
+  }, [inWindow]);
 
   return (
     <main className="relative h-dvh w-full overflow-hidden bg-bg">
@@ -68,7 +79,7 @@ export default function Groundwork() {
           />
           <PlanPanel />
         </div>
-        <Timeline />
+        <Timeline time={time} onChange={setTime} activeDays={activeDays} />
       </div>
     </main>
   );

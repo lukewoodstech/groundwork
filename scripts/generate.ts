@@ -77,9 +77,28 @@ for (const e of osm.elements) {
   }
 }
 
-// Keep the largest connected component so walks never get stranded.
+// Every walkable street inside the area, as runs of consecutive inside nodes,
+// so the map can draw the ones nobody has walked.
+const streets: LngLat[][] = [];
+for (const e of osm.elements) {
+  if (e.type !== "way" || !WALKABLE.has(e.tags.highway)) continue;
+  let run: LngLat[] = [];
+  for (const id of e.nodes) {
+    const p = coord.get(id);
+    if (p && inside(p)) {
+      run.push(p);
+    } else {
+      if (run.length > 1) streets.push(run);
+      run = [];
+    }
+  }
+  if (run.length > 1) streets.push(run);
+}
+
+// Drop tiny disconnected fragments so walks never get stranded. University
+// Avenue splits the network, so there is more than one real component.
 const seen = new Set<number>();
-let largest: number[] = [];
+const keep = new Set<number>();
 for (const start of adj.keys()) {
   if (seen.has(start)) continue;
   const comp: number[] = [];
@@ -96,22 +115,22 @@ for (const start of adj.keys()) {
       }
     }
   }
-  if (comp.length > largest.length) largest = comp;
+  if (comp.length >= 40) for (const n of comp) keep.add(n);
 }
-const nodeSet = new Set(largest);
-for (const n of [...adj.keys()]) if (!nodeSet.has(n)) adj.delete(n);
+for (const n of [...adj.keys()]) if (!keep.has(n)) adj.delete(n);
 const nodes = [...adj.keys()];
 
 // ---------------------------------------------------------------- zones
 
 const SEEDS: { id: string; name: string; at: LngLat }[] = [
-  { id: "edgewood", name: "Edgewood", at: [-111.6555, 40.274] },
-  { id: "stone-gate", name: "Stone Gate", at: [-111.6555, 40.289] },
-  { id: "timpview", name: "Timpview", at: [-111.647, 40.2745] },
-  { id: "edgemont", name: "Edgemont", at: [-111.646, 40.284] },
-  { id: "osmond", name: "Osmond", at: [-111.643, 40.292] },
-  { id: "indian-hills", name: "Indian Hills", at: [-111.6405, 40.2735] },
-  { id: "little-rock", name: "Little Rock", at: [-111.6385, 40.2845] },
+  { id: "marrcrest", name: "Marrcrest", at: [-111.6625, 40.2735] },
+  { id: "stone-gate", name: "Stone Gate", at: [-111.6625, 40.2895] },
+  { id: "edgewood", name: "Edgewood", at: [-111.6548, 40.2745] },
+  { id: "timpview", name: "Timpview", at: [-111.647, 40.2735] },
+  { id: "edgemont", name: "Edgemont", at: [-111.6465, 40.2855] },
+  { id: "osmond", name: "Osmond", at: [-111.6445, 40.2955] },
+  { id: "indian-hills", name: "Indian Hills", at: [-111.6395, 40.2695] },
+  { id: "little-rock", name: "Little Rock", at: [-111.6362, 40.2835] },
 ];
 
 const areaBbox = turf.bbox(areaPoly);
@@ -195,7 +214,7 @@ const compFor = (daysAgo: number) =>
 // Every companionship leans on a couple of zones. The first pair worked the
 // zone that is neglected now.
 const FAVOURITES: Record<string, string[]> = {
-  c1: ["stone-gate", "edgewood"],
+  c1: ["stone-gate", "marrcrest"],
   c2: ["edgemont", "osmond"],
   c3: ["timpview", "indian-hills"],
   us: ["timpview", "edgewood"],
@@ -242,7 +261,7 @@ function outcomeFor(type: ActionType, onSuccessStreet: boolean): Outcome {
   const r = rand();
   if (type === "lesson") return "lesson_set";
   if (type === "contact") {
-    if (onSuccessStreet) return r < 0.6 ? "lesson_set" : r < 0.85 ? "interested" : "none";
+    if (onSuccessStreet) return r < 0.75 ? "lesson_set" : r < 0.9 ? "interested" : "none";
     return r < 0.1 ? "lesson_set" : r < 0.35 ? "interested" : "none";
   }
   return r < 0.06 ? "interested" : "none";
@@ -270,7 +289,7 @@ function generateWalk({ comp, daysAgo, startHour, zoneId, startNode, preferStree
   const used = new Set<Edge>();
   let prev: Edge | null = null;
   let elapsed = 0;
-  let untilNext = between(50, 95);
+  let untilNext = between(60, 110);
   const successWindow = daysAgo <= 30;
 
   while (elapsed < budget) {
@@ -300,7 +319,7 @@ function generateWalk({ comp, daysAgo, startHour, zoneId, startNode, preferStree
     let along = 0;
     while (along + untilNext < edge.len) {
       along += untilNext;
-      untilNext = between(50, 95);
+      untilNext = between(60, 110);
       const f = along / edge.len;
       const onLine: LngLat = [pa[0] + (pb[0] - pa[0]) * f, pa[1] + (pb[1] - pa[1]) * f];
       const side = rand() < 0.5 ? -90 : 90;
@@ -348,7 +367,7 @@ for (let daysAgo = RANGE_DAYS; daysAgo >= 0; daysAgo--) {
   const r = rand();
   const sessions: number[] = slump
     ? r < 0.3 ? [between(13, 15)] : []
-    : r < 0.2 ? [] : r < 0.55 ? [rand() < 0.5 ? between(9.5, 11) : between(13, 15.5)] : [between(9.5, 10.5), between(14, 15.5)];
+    : r < 0.15 ? [] : r < 0.45 ? [rand() < 0.5 ? between(9.5, 11) : between(13, 15.5)] : [between(9.5, 10.5), between(14, 15.5)];
 
   for (const startHour of sessions) {
     if (daysAgo === 0 && startHour > 11) continue; // today is still ahead of us
@@ -400,6 +419,7 @@ write("walks", walks);
 write("actions", actions);
 write("appointments", appointments);
 write("zones", zones);
+write("streets", streets);
 write("planted", {
   neglectedZoneId: NEGLECTED,
   nearbyZoneId: NEARBY,
@@ -408,6 +428,6 @@ write("planted", {
 });
 
 console.log(
-  `${nodes.length} street nodes, ${zones.length} zones, ${walks.length} walks, ${actions.length} actions`,
+  `${nodes.length} street nodes, ${streets.length} street runs, ${zones.length} zones, ${walks.length} walks, ${actions.length} actions`,
 );
 console.log(`success street: ${SUCCESS_STREET}`);
