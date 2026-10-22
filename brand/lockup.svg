@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 176 32" width="176" height="32">
+  <!-- Groundwork lockup: mark at 20px, name in Geist Medium 15px, 12px gap. In the app this is components/brand/Logo.tsx. -->
+  <path d="M2 2H30V8H10V18H2ZM14 12H30V30H2V22H14Z" fill="#fff" transform="translate(6 6) scale(0.625)"/>
+  <text x="38" y="21" fill="#fff" font-family="Geist, Inter, system-ui, sans-serif" font-size="15" font-weight="500" letter-spacing="-0.15">Groundwork</text>
+</svg>

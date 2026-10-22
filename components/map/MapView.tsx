@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import { MapboxOverlay } from "@deck.gl/mapbox";
 import type { PickingInfo } from "@deck.gl/core";
@@ -124,13 +124,16 @@ type Props = {
   companionships: Companionship[];
   columns: boolean;
   focus: Focus | null;
+  /** Fires once the first frame of the basemap has drawn. */
+  onReady?: () => void;
 };
 
 const clock = (iso: string) =>
   new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Denver" });
 
-export default function MapView({ walks, actions, appointments, companionships, columns, focus }: Props) {
+export default function MapView({ walks, actions, appointments, companionships, columns, focus, onReady }: Props) {
   const container = useRef<HTMLDivElement>(null);
+  const notifyReady = useEffectEvent(() => onReady?.());
   const overlay = useRef<MapboxOverlay | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const [labelLayerId, setLabelLayerId] = useState<string>();
@@ -162,6 +165,7 @@ export default function MapView({ walks, actions, appointments, companionships, 
     });
     map.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-left");
     mapRef.current = map;
+    map.once("load", () => notifyReady());
 
     map.on("style.load", () => {
       if (TERRAIN) {
@@ -270,11 +274,11 @@ export default function MapView({ walks, actions, appointments, companionships, 
   if (!TOKEN) {
     return (
       <div className="absolute inset-0 grid place-items-center bg-bg">
-        <div className="border border-line bg-panel px-6 py-5 text-center">
-          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">Map unavailable</p>
-          <p className="mt-2 text-sm text-ink-2">
+        <div className="panel-in border border-line bg-panel px-6 py-5 text-center">
+          <p className="label text-ink-3">Map unavailable</p>
+          <p className="mt-2 text-body text-ink-2">
             Add <span className="font-mono text-ink">NEXT_PUBLIC_MAPBOX_TOKEN</span> to{" "}
-            <span className="font-mono text-ink">.env.local</span> and restart.
+            <span className="font-mono text-ink">.env.local</span>, then restart.
           </p>
         </div>
       </div>

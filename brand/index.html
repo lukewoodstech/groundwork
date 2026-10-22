@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Groundwork mark options</title>
+<style>
+  :root { --bg:#09090a; --panel:#0e0e10; --line:#262629; --ink:#f4f4f5; --ink-2:#a3a3a8; --ink-3:#67676d; }
+  * { box-sizing:border-box; border-radius:0 }
+  body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; -webkit-font-smoothing:antialiased }
+  .mono { font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3) }
+  header { display:flex; justify-content:space-between; align-items:baseline; padding:20px 28px; border-bottom:1px solid var(--line) }
+  header h1 { margin:0; font-size:15px; font-weight:500 }
+  .option { border-bottom:1px solid var(--line); padding:28px }
+  .option h2 { margin:0 0 4px; font-size:15px; font-weight:500 }
+  .option p { margin:0 0 20px; color:var(--ink-2); font-size:13px; max-width:60ch }
+  .sizes { display:flex; align-items:flex-end; gap:36px; flex-wrap:wrap }
+  .size { display:flex; flex-direction:column; align-items:center; gap:10px }
+  .size img { display:block; color:#fff }
+  .contexts { display:flex; gap:16px; margin-top:24px; flex-wrap:wrap }
+  .ctx { border:1px solid var(--line); background:var(--panel) }
+  .tab { display:flex; align-items:center; gap:8px; height:34px; padding:0 12px; font-size:12px; color:#1d1d1f; background:#f1f1f3; border:1px solid #d4d4d8; width:220px }
+  .tab.dark { background:#202124; color:#e8eaed; border-color:#3c4043 }
+  .tab img { width:16px; height:16px }
+  .hdr { display:flex; align-items:center; gap:12px; height:56px; padding:0 20px; width:340px }
+  .hdr .box { display:grid; place-items:center; width:28px; height:28px; border:1px solid #3b3b40 }
+  .hdr .box img { width:18px; height:18px }
+  .hdr span { font-size:15px; font-weight:500; letter-spacing:-.01em }
+  .side { display:flex; gap:28px; padding:28px; align-items:flex-start }
+  .side .size img { width:96px; height:96px }
+</style>
+</head>
+<body>
+<header>
+  <h1>Groundwork · mark options</h1>
+  <span class="mono">White on near black · 32 unit grid · no gradients · C chosen</span>
+</header>
+
+<section class="option">
+  <h2>A · Grid</h2>
+  <p>A street grid with one route walked through it. The grid stays faint; the route is the mark.</p>
+  <div class="sizes">
+    <div class="size"><img src="mark-a-grid.svg" width="16" height="16"><span class="mono">16</span></div>
+    <div class="size"><img src="mark-a-grid.svg" width="32" height="32"><span class="mono">32</span></div>
+    <div class="size"><img src="mark-a-grid.svg" width="64" height="64"><span class="mono">64</span></div>
+    <div class="size"><img src="mark-a-grid.svg" width="128" height="128"><span class="mono">128</span></div>
+    <div class="size"><img src="mark-a-grid.svg" width="512" height="512"><span class="mono">512</span></div>
+  </div>
+  <div class="contexts">
+    <div class="tab"><img src="mark-a-grid.svg" style="filter:invert(1)">Groundwork</div>
+    <div class="tab dark"><img src="mark-a-grid.svg">Groundwork</div>
+    <div class="ctx hdr"><span class="box"><img src="mark-a-grid.svg"></span><span>Groundwork</span></div>
+  </div>
+</section>
+
+<section class="option">
+  <h2>B · Strata</h2>
+  <p>The same street walked three times. Older passes sit behind and fade, the way old work fades on the map.</p>
+  <div class="sizes">
+    <div class="size"><img src="mark-b-strata.svg" width="16" height="16"><span class="mono">16</span></div>
+    <div class="size"><img src="mark-b-strata.svg" width="32" height="32"><span class="mono">32</span></div>
+    <div class="size"><img src="mark-b-strata.svg" width="64" height="64"><span class="mono">64</span></div>
+    <div class="size"><img src="mark-b-strata.svg" width="128" height="128"><span class="mono">128</span></div>
+    <div class="size"><img src="mark-b-strata.svg" width="512" height="512"><span class="mono">512</span></div>
+  </div>
+  <div class="contexts">
+    <div class="tab"><img src="mark-b-strata.svg" style="filter:invert(1)">Groundwork</div>
+    <div class="tab dark"><img src="mark-b-strata.svg">Groundwork</div>
+    <div class="ctx hdr"><span class="box"><img src="mark-b-strata.svg"></span><span>Groundwork</span></div>
+  </div>
+</section>
+
+<section class="option">
+  <h2>C · Ground</h2>
+  <p>A solid block of ground with one path cut through it. Reads as a shape first, so it holds up smallest.</p>
+  <div class="sizes">
+    <div class="size"><img src="mark-c-ground.svg" width="16" height="16"><span class="mono">16</span></div>
+    <div class="size"><img src="mark-c-ground.svg" width="32" height="32"><span class="mono">32</span></div>
+    <div class="size"><img src="mark-c-ground.svg" width="64" height="64"><span class="mono">64</span></div>
+    <div class="size"><img src="mark-c-ground.svg" width="128" height="128"><span class="mono">128</span></div>
+    <div class="size"><img src="mark-c-ground.svg" width="512" height="512"><span class="mono">512</span></div>
+  </div>
+  <div class="contexts">
+    <div class="tab"><img src="mark-c-ground.svg" style="filter:invert(1)">Groundwork</div>
+    <div class="tab dark"><img src="mark-c-ground.svg">Groundwork</div>
+    <div class="ctx hdr"><span class="box"><img src="mark-c-ground.svg"></span><span>Groundwork</span></div>
+  </div>
+</section>
+
+<section class="side">
+  <div class="size"><img src="mark-a-grid.svg"><span class="mono">A</span></div>
+  <div class="size"><img src="mark-b-strata.svg"><span class="mono">B</span></div>
+  <div class="size"><img src="mark-c-ground.svg"><span class="mono">C</span></div>
+</section>
+</body>
+</html>

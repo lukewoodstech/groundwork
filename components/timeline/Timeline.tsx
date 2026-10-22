@@ -93,9 +93,9 @@ export default function Timeline({ time, onChange, activeDays }: Props) {
   };
 
   return (
-    <div className="pointer-events-auto mx-auto mb-5 flex w-[min(1040px,calc(100%-2rem))] shrink-0 flex-col items-center gap-3">
+    <div className="panel-in pointer-events-auto mx-auto mb-5 flex w-[min(1040px,calc(100%-2rem))] shrink-0 flex-col items-center gap-3">
       <div className="relative flex items-stretch gap-3">
-        <div role="radiogroup" className="flex border border-line bg-panel">
+        <div role="radiogroup" aria-label="Window length" className="flex border border-line bg-panel">
           {PERIODS.map((p) => {
             const active = p.id === time.period;
             return (
@@ -105,9 +105,7 @@ export default function Timeline({ time, onChange, activeDays }: Props) {
                 role="radio"
                 aria-checked={active}
                 onClick={() => set({ period: p.id, endDay: time.endDay })}
-                className={`h-9 border-r border-line px-4 text-[12px] last:border-r-0 ${
-                  active ? "bg-ink font-medium text-bg" : "text-ink-2 hover:bg-raised"
-                }`}
+                className={`ctl h-9 border-r border-line px-4 text-ctl last:border-r-0 ${active ? "" : "text-ink-2"}`}
               >
                 {p.label}
               </button>
@@ -121,7 +119,9 @@ export default function Timeline({ time, onChange, activeDays }: Props) {
             type="button"
             onClick={() => setCalendarOpen((o) => !o)}
             aria-expanded={calendarOpen}
-            className="h-9 min-w-[170px] px-3 text-[12px] font-medium text-ink hover:bg-raised"
+            aria-haspopup="dialog"
+            title="Jump to a day"
+            className="ctl h-9 min-w-[170px] px-3 text-ctl font-medium text-ink"
           >
             {rangeLabel(time)}
           </button>
@@ -145,9 +145,10 @@ export default function Timeline({ time, onChange, activeDays }: Props) {
       <div className="flex h-[76px] w-full items-stretch border border-line bg-panel">
         <button
           type="button"
-          aria-label={playing ? "Pause" : "Play"}
+          aria-label={playing ? "Pause replay" : "Replay the last six months"}
+          title={playing ? "Pause" : "Replay"}
           onClick={togglePlay}
-          className="grid w-[60px] shrink-0 place-items-center border-r border-line text-ink hover:bg-raised"
+          className="ctl grid w-[60px] shrink-0 place-items-center border-r border-line text-ink"
         >
           {playing ? (
             <svg width="12" height="14" viewBox="0 0 12 14" fill="currentColor" aria-hidden>
@@ -170,7 +171,7 @@ export default function Timeline({ time, onChange, activeDays }: Props) {
           {months.map((m) => (
             <span
               key={m.label}
-              className="absolute top-4 -translate-x-1/2 font-mono text-[9px] tracking-[0.14em] text-ink-3"
+              className="absolute top-4 -translate-x-1/2 font-mono text-micro text-ink-3"
               style={{ left: at(m.left) }}
             >
               {m.label}
@@ -192,7 +193,7 @@ export default function Timeline({ time, onChange, activeDays }: Props) {
               style={{ left: at(t) }}
             >
               <span className="block h-[7px] w-[7px] rotate-45 border border-ink-2 bg-panel" />
-              <span className="absolute left-1/2 top-[-18px] -translate-x-1/2 whitespace-nowrap font-mono text-[8px] tracking-[0.14em] text-ink-3">
+              <span className="absolute left-1/2 top-[-18px] -translate-x-1/2 whitespace-nowrap font-mono text-micro text-ink-3">
                 TRANSFER
               </span>
             </span>
@@ -206,8 +207,8 @@ export default function Timeline({ time, onChange, activeDays }: Props) {
         </div>
 
         <div className="flex w-[150px] shrink-0 flex-col justify-center gap-1 border-l border-line px-5">
-          <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-ink-3">Viewing through</span>
-          <span className="text-[13px] font-medium text-ink">
+          <span className="label text-ink-3">Through</span>
+          <span className="text-body font-medium text-ink">
             {shortDate(rangeEnd - 1)}, {localParts(rangeEnd - 1).year}
           </span>
         </div>
@@ -220,10 +221,11 @@ function Arrow({ dir, disabled, onClick }: { dir: 1 | -1; disabled: boolean; onC
   return (
     <button
       type="button"
-      aria-label={dir > 0 ? "Next period" : "Previous period"}
+      aria-label={dir > 0 ? "Later" : "Earlier"}
+      title={dir > 0 ? "Later" : "Earlier"}
       disabled={disabled}
       onClick={onClick}
-      className="grid w-9 place-items-center text-ink-2 hover:bg-raised disabled:cursor-default disabled:text-ink-3/50 disabled:hover:bg-transparent"
+      className="ctl grid w-9 place-items-center text-ink-2"
     >
       <svg width="12" height="10" viewBox="0 0 12 10" fill="none" aria-hidden>
         <path d={dir > 0 ? "M1 5h10M7 1l4 4-4 4" : "M11 5H1M5 1L1 5l4 4"} stroke="currentColor" strokeWidth="1.2" />
@@ -261,21 +263,21 @@ function Calendar({
   return (
     <>
       <div className="fixed inset-0 z-10" onClick={onClose} aria-hidden />
-      <div className="absolute bottom-full left-1/2 z-20 mb-2 w-[272px] -translate-x-1/2 border border-line bg-panel p-3">
+      <div role="dialog" aria-label="Jump to a day" className="panel-in absolute bottom-full left-1/2 z-20 mb-2 w-[272px] -translate-x-1/2 border border-line bg-panel p-3">
         <div className="flex items-center justify-between">
-          <button type="button" aria-label="Previous month" onClick={() => move(-1)} className="grid h-7 w-7 place-items-center text-ink-2 hover:bg-raised">
+          <button type="button" aria-label="Previous month" onClick={() => move(-1)} className="ctl grid h-7 w-7 place-items-center text-ink-2">
             <svg width="12" height="10" viewBox="0 0 12 10" fill="none" aria-hidden>
               <path d="M11 5H1M5 1L1 5l4 4" stroke="currentColor" strokeWidth="1.2" />
             </svg>
           </button>
-          <span className="text-[12px] font-medium text-ink">{title}</span>
-          <button type="button" aria-label="Next month" onClick={() => move(1)} className="grid h-7 w-7 place-items-center text-ink-2 hover:bg-raised">
+          <span className="text-ctl font-medium text-ink">{title}</span>
+          <button type="button" aria-label="Next month" onClick={() => move(1)} className="ctl grid h-7 w-7 place-items-center text-ink-2">
             <svg width="12" height="10" viewBox="0 0 12 10" fill="none" aria-hidden>
               <path d="M1 5h10M7 1l4 4-4 4" stroke="currentColor" strokeWidth="1.2" />
             </svg>
           </button>
         </div>
-        <div className="mt-2 grid grid-cols-7 font-mono text-[9px] tracking-[0.1em] text-ink-3">
+        <div className="mt-2 grid grid-cols-7 font-mono text-micro text-ink-3">
           {WEEKDAYS.map((w, i) => (
             <span key={i} className="grid h-6 place-items-center">
               {w}
@@ -297,9 +299,8 @@ function Calendar({
                 type="button"
                 disabled={!inData}
                 onClick={() => onPick(endDay)}
-                className={`relative grid h-8 place-items-center text-[12px] ${
-                  isSelected ? "bg-ink text-bg" : inData ? "text-ink hover:bg-raised" : "text-ink-3/40"
-                }`}
+                aria-pressed={isSelected}
+                className="ctl relative grid h-8 place-items-center text-ctl text-ink"
               >
                 {day}
                 {inData && activeDays.has(endDay) && (

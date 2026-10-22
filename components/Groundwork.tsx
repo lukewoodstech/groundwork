@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { filterActions } from "@/lib/data/filter";
 import { actions, appointments, companionships, streets, walks, zones } from "@/lib/data";
 import { fetchWalkingRoute, zoneEntryPoint } from "@/lib/data/route";
@@ -10,6 +10,7 @@ import type { PlanResponse } from "@/app/api/plan/route";
 import type { Focus } from "./map/layers";
 import { daysAgoOf, rangeMs, type TimeRange } from "@/lib/data/time";
 import type { ActionType, Filters } from "@/lib/data/types";
+import LoadScreen from "./LoadScreen";
 import Header from "./panels/Header";
 import MapViewPanel from "./panels/MapViewPanel";
 import PlanPanel, { type PlanState } from "./panels/PlanPanel";
@@ -33,6 +34,13 @@ export default function Groundwork() {
   // Six months ending today. The missionary toggle and the time window are
   // independent: each narrows the same data.
   const [time, setTime] = useState<TimeRange>({ period: "6m", endDay: 0 });
+
+  // The load screen lifts when the basemap draws, or after 8s if it never does.
+  const [mapReady, setMapReady] = useState(!process.env.NEXT_PUBLIC_MAPBOX_TOKEN);
+  useEffect(() => {
+    const id = setTimeout(() => setMapReady(true), 8000);
+    return () => clearTimeout(id);
+  }, []);
   const [start, end] = rangeMs(time);
 
   // Everything by the chosen missionaries, all time. Feeds the calendar dots.
@@ -122,7 +130,9 @@ export default function Groundwork() {
         companionships={companionships}
         columns={filters.columns}
         focus={focus}
+        onReady={() => setMapReady(true)}
       />
+      <LoadScreen ready={mapReady} />
 
       <div className="pointer-events-none absolute inset-0 flex flex-col">
         <Header />
