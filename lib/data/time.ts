@@ -28,11 +28,11 @@ export const daysAgoOf = (ms: number) => Math.floor((dayStartMs(0) + DAY_MS - ms
  * reaches further back than that is simply cut off at the data's start, which
  * is what lets replay grow a six-month window from nothing.
  */
-export const maxEndDay = (_p: Period) => RANGE_DAYS;
+export const maxEndDay = () => RANGE_DAYS;
 
 export const clampRange = (r: TimeRange): TimeRange => ({
   period: r.period,
-  endDay: Math.min(Math.max(r.endDay, 0), maxEndDay(r.period)),
+  endDay: Math.min(Math.max(r.endDay, 0), maxEndDay()),
 });
 
 /** [start, end) in ms, with the start cut off at the first day of data. */
