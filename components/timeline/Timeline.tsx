@@ -53,7 +53,7 @@ export default function Timeline({ time, onChange, activeDays }: Props) {
 
   const set = (t: TimeRange) => onChange(clampRange(t));
   const step = (dir: 1 | -1) => set({ ...time, endDay: time.endDay - dir * periodDays(time.period) });
-  const canBack = time.endDay < maxEndDay(time.period);
+  const canBack = time.endDay < maxEndDay();
   const canForward = time.endDay > 0;
 
   // Replay: the window walks forward one day at a time until it reaches today.
@@ -70,7 +70,7 @@ export default function Timeline({ time, onChange, activeDays }: Props) {
   }, [playing, time, onChange]);
 
   const togglePlay = () => {
-    if (!playing && time.endDay <= 0) onChange({ ...time, endDay: maxEndDay(time.period) });
+    if (!playing && time.endDay <= 0) onChange({ ...time, endDay: maxEndDay() });
     setPlaying((p) => !p);
   };
 

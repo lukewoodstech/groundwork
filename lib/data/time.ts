@@ -23,17 +23,22 @@ export const dayStartMs = (daysAgo: number) => TODAY.getTime() - 12 * 3600_000 -
 /** Which day (in days before today) an instant falls on. */
 export const daysAgoOf = (ms: number) => Math.floor((dayStartMs(0) + DAY_MS - ms) / DAY_MS);
 
-/** Latest `endDay` for a period whose window still starts inside the data. */
-export const maxEndDay = (p: Period) => Math.max(0, RANGE_DAYS - periodDays(p) + 1);
+/**
+ * Earliest end day for any period: the first day of the data. A window that
+ * reaches further back than that is simply cut off at the data's start, which
+ * is what lets replay grow a six-month window from nothing.
+ */
+export const maxEndDay = () => RANGE_DAYS;
 
 export const clampRange = (r: TimeRange): TimeRange => ({
   period: r.period,
-  endDay: Math.min(Math.max(r.endDay, 0), maxEndDay(r.period)),
+  endDay: Math.min(Math.max(r.endDay, 0), maxEndDay()),
 });
 
-/** [start, end) in ms. */
+/** [start, end) in ms, with the start cut off at the first day of data. */
 export function rangeMs(r: TimeRange): [number, number] {
-  return [dayStartMs(r.endDay + periodDays(r.period) - 1), dayStartMs(r.endDay) + DAY_MS];
+  const startDay = Math.min(r.endDay + periodDays(r.period) - 1, RANGE_DAYS);
+  return [dayStartMs(startDay), dayStartMs(r.endDay) + DAY_MS];
 }
 
 /** Year, month (0-based) and day of month in Provo local time. */
