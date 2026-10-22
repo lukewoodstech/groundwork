@@ -58,44 +58,34 @@ export default function MapViewPanel({ filters, onChange, counts, total }: Props
       <section className="border-t border-line px-4 pb-3 pt-3">
         <Label>Activity</Label>
         <div className="mt-1">
-          {ACTIVITY.map((a) => {
-            const on = filters.activity[a.value];
-            return (
-              <label
-                key={a.value}
-                className="flex h-9 cursor-pointer select-none items-center gap-3"
-              >
-                <input
-                  type="checkbox"
-                  className="sr-only"
-                  checked={on}
-                  onChange={() =>
-                    onChange({
-                      ...filters,
-                      activity: { ...filters.activity, [a.value]: !on },
-                    })
-                  }
-                />
-                <span
-                  aria-hidden
-                  className={`grid h-[14px] w-[14px] place-items-center border ${
-                    on ? "border-ink bg-ink" : "border-line-strong"
-                  }`}
-                >
-                  {on && (
-                    <svg width="9" height="7" viewBox="0 0 9 7" fill="none">
-                      <path d="M1 3.5l2.5 2.5L8 1" stroke="#09090a" strokeWidth="1.4" />
-                    </svg>
-                  )}
-                </span>
-                <Glyph type={a.value} />
-                <span className={`flex-1 text-[13px] ${on ? "text-ink" : "text-ink-3"}`}>
-                  {a.label}
-                </span>
-                <span className="font-mono text-[11px] text-ink-3">{counts[a.value]}</span>
-              </label>
-            );
-          })}
+          {ACTIVITY.map((a) => (
+            <Check
+              key={a.value}
+              on={filters.activity[a.value]}
+              onToggle={() =>
+                onChange({
+                  ...filters,
+                  activity: { ...filters.activity, [a.value]: !filters.activity[a.value] },
+                })
+              }
+              label={a.label}
+              glyph={<Glyph type={a.value} />}
+              trail={counts[a.value]}
+            />
+          ))}
+        </div>
+      </section>
+
+      <section className="border-t border-line px-4 pb-3 pt-3">
+        <Label>Layers</Label>
+        <div className="mt-1">
+          <Check
+            on={filters.columns}
+            onToggle={() => onChange({ ...filters, columns: !filters.columns })}
+            label="Effort columns"
+            glyph={<ColumnGlyph />}
+            trail="H3"
+          />
         </div>
       </section>
 
@@ -109,6 +99,50 @@ export default function MapViewPanel({ filters, onChange, counts, total }: Props
         </div>
       </section>
     </aside>
+  );
+}
+
+function Check({
+  on,
+  onToggle,
+  label,
+  glyph,
+  trail,
+}: {
+  on: boolean;
+  onToggle: () => void;
+  label: string;
+  glyph: React.ReactNode;
+  trail: React.ReactNode;
+}) {
+  return (
+    <label className="flex h-9 cursor-pointer select-none items-center gap-3">
+      <input type="checkbox" className="sr-only" checked={on} onChange={onToggle} />
+      <span
+        aria-hidden
+        className={`grid h-[14px] w-[14px] place-items-center border ${
+          on ? "border-ink bg-ink" : "border-line-strong"
+        }`}
+      >
+        {on && (
+          <svg width="9" height="7" viewBox="0 0 9 7" fill="none">
+            <path d="M1 3.5l2.5 2.5L8 1" stroke="#09090a" strokeWidth="1.4" />
+          </svg>
+        )}
+      </span>
+      {glyph}
+      <span className={`flex-1 text-[13px] ${on ? "text-ink" : "text-ink-3"}`}>{label}</span>
+      <span className="font-mono text-[11px] text-ink-3">{trail}</span>
+    </label>
+  );
+}
+
+function ColumnGlyph() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden className="text-ink-2">
+      <path d="M7 1.5l4.5 2.6v5.2L7 11.9 2.5 9.3V4.1z" fill="none" stroke="currentColor" strokeWidth="1.2" />
+      <path d="M7 6.7l4.5-2.6M7 6.7L2.5 4.1M7 6.7v5.2" stroke="currentColor" strokeWidth="1" />
+    </svg>
   );
 }
 

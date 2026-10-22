@@ -40,9 +40,12 @@ export type Zone = {
   polygon: [number, number][];
 };
 
+export type Area = { name: string; polygon: [number, number][] };
+
 export type Who = "us" | "prev" | "all";
 
 export type Filters = {
   who: Who;
   activity: Record<ActionType, boolean>;
+  columns: boolean;
 };

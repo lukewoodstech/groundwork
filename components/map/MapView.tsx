@@ -3,9 +3,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import { MapboxOverlay } from "@deck.gl/mapbox";
+import type { PickingInfo } from "@deck.gl/core";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { INITIAL_VIEW } from "@/lib/data/area";
-import type { Action, Companionship } from "@/lib/data/types";
+import { area, bbox } from "@/lib/data";
+import { walkedSegments } from "@/lib/data/segments";
+import type { Action, Companionship, Walk } from "@/lib/data/types";
 import { buildLayers } from "./layers";
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
@@ -14,6 +16,11 @@ const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 // land hundreds of metres from their streets (overlaid) or vanish behind the
 // terrain depth buffer (interleaved). Off until that is resolved.
 const TERRAIN = false;
+
+const PITCH = 55;
+const BEARING = -18;
+// Room for the header, panels and timeline when framing the area.
+const PADDING = { top: 90, bottom: 180, left: 380, right: 360 };
 
 // Pull the dark style toward the panel colour and keep only major street
 // names, so the data is the brightest thing on screen.
@@ -45,9 +52,50 @@ function quietBasemap(map: mapboxgl.Map) {
   map.setPaintProperty("settlement-subdivision-label", "text-opacity", 0.7);
 }
 
-type Props = { actions: Action[]; companionships: Companionship[] };
+// Thin white border, a faint fill, and a dimming mask over everything outside.
+function addArea(map: mapboxgl.Map, beforeId?: string) {
+  const ring = [...area.polygon, area.polygon[0]];
+  const feature = (coordinates: number[][][]): GeoJSON.Feature => ({
+    type: "Feature",
+    properties: {},
+    geometry: { type: "Polygon", coordinates },
+  });
+  const world = [
+    [-180, -85],
+    [180, -85],
+    [180, 85],
+    [-180, 85],
+    [-180, -85],
+  ];
+  map.addSource("area", { type: "geojson", data: feature([ring]) });
+  map.addSource("area-mask", { type: "geojson", data: feature([world, ring]) });
+  map.addLayer(
+    { id: "area-mask", type: "fill", source: "area-mask", paint: { "fill-color": "#09090a", "fill-opacity": 0.5 } },
+    beforeId,
+  );
+  map.addLayer(
+    { id: "area-fill", type: "fill", source: "area", paint: { "fill-color": "#ffffff", "fill-opacity": 0.03 } },
+    beforeId,
+  );
+  map.addLayer(
+    {
+      id: "area-line",
+      type: "line",
+      source: "area",
+      paint: { "line-color": "#f4f4f5", "line-width": 1, "line-opacity": 0.85 },
+    },
+    beforeId,
+  );
+}
 
-export default function MapView({ actions, companionships }: Props) {
+type Props = {
+  walks: Walk[];
+  actions: Action[];
+  companionships: Companionship[];
+  columns: boolean;
+};
+
+export default function MapView({ walks, actions, companionships, columns }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const overlay = useRef<MapboxOverlay | null>(null);
   const [labelLayerId, setLabelLayerId] = useState<string>();
@@ -57,15 +105,21 @@ export default function MapView({ actions, companionships }: Props) {
     () => new Set(companionships.filter((c) => c.isCurrent).map((c) => c.id)),
     [companionships],
   );
+  const names = useMemo(() => new Map(companionships.map((c) => [c.id, c.name])), [companionships]);
+  const segments = useMemo(() => walkedSegments(walks), [walks]);
 
   useEffect(() => {
     if (!TOKEN || !container.current) return;
     mapboxgl.accessToken = TOKEN;
 
+    const bounds = bbox(area.polygon);
     const map = new mapboxgl.Map({
       container: container.current,
       style: "mapbox://styles/mapbox/dark-v11",
-      ...INITIAL_VIEW,
+      center: [(bounds[0] + bounds[2]) / 2, (bounds[1] + bounds[3]) / 2],
+      zoom: 14,
+      pitch: PITCH,
+      bearing: BEARING,
       minZoom: 12,
       maxPitch: 70,
       antialias: true,
@@ -90,13 +144,10 @@ export default function MapView({ actions, companionships }: Props) {
         "horizon-blend": 0.04,
         "star-intensity": 0,
       });
-
       quietBasemap(map);
 
       // First symbol layer: everything we add goes underneath the labels.
-      const firstLabel = map
-        .getStyle()
-        ?.layers.find((l) => l.type === "symbol")?.id;
+      const firstLabel = map.getStyle()?.layers.find((l) => l.type === "symbol")?.id;
 
       map.addLayer(
         {
@@ -115,6 +166,12 @@ export default function MapView({ actions, companionships }: Props) {
         },
         firstLabel,
       );
+      addArea(map, firstLabel);
+
+      // Frame the whole area, leaving room for the panels.
+      const camera = map.cameraForBounds(bounds, { padding: PADDING, bearing: BEARING, pitch: PITCH });
+      // cameraForBounds is conservative under pitch; tighten a little.
+      if (camera) map.jumpTo({ ...camera, zoom: (camera.zoom ?? 14) + 0.4, pitch: PITCH, bearing: BEARING });
 
       overlay.current = new MapboxOverlay({ interleaved: true, layers: [] });
       map.addControl(overlay.current);
@@ -132,17 +189,36 @@ export default function MapView({ actions, companionships }: Props) {
   useEffect(() => {
     if (!ready || !overlay.current) return;
     overlay.current.setProps({
-      layers: buildLayers(actions, current, labelLayerId),
+      layers: buildLayers({ segments, actions, current, columns, beforeId: labelLayerId }),
+      getTooltip: ({ object, layer }: PickingInfo<Action>) => {
+        if (!object || !layer?.id.startsWith("actions-")) return null;
+        const when = new Date(object.time).toLocaleString("en-US", {
+          month: "short",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+          timeZone: "America/Denver",
+        });
+        const label = { knock: "Door knock", contact: "Street contact", lesson: "Lesson" }[object.type];
+        const outcome = { none: "", interested: "Interested", lesson_set: "Lesson set" }[object.outcome];
+        return {
+          html: `<div style="font:500 12px var(--font-geist-sans),sans-serif;color:#f4f4f5">${label}</div>
+            <div style="font:11px var(--font-geist-mono),monospace;color:#a3a3a8;margin-top:3px">${names.get(object.companionshipId) ?? ""} · ${when}${outcome ? ` · ${outcome}` : ""}</div>`,
+          style: {
+            background: "#0e0e10",
+            border: "1px solid #262629",
+            padding: "8px 10px",
+          },
+        };
+      },
     });
-  }, [ready, actions, current, labelLayerId]);
+  }, [ready, segments, actions, current, columns, labelLayerId, names]);
 
   if (!TOKEN) {
     return (
       <div className="absolute inset-0 grid place-items-center bg-bg">
         <div className="border border-line bg-panel px-6 py-5 text-center">
-          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">
-            Map unavailable
-          </p>
+          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">Map unavailable</p>
           <p className="mt-2 text-sm text-ink-2">
             Add <span className="font-mono text-ink">NEXT_PUBLIC_MAPBOX_TOKEN</span> to{" "}
             <span className="font-mono text-ink">.env.local</span> and restart.

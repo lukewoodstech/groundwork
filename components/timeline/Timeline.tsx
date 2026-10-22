@@ -1,5 +1,5 @@
 import { DAY_MS, RANGE_DAYS, TODAY } from "@/lib/data/area";
-import { companionships } from "@/lib/data/mock";
+import { companionships } from "@/lib/data";
 
 // Placeholder. Scrubbing, play, and the chips go live in Phase 3.
 
