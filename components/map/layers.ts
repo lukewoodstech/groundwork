@@ -93,15 +93,18 @@ export function buildLayers({ segments, actions, current, columns, beforeId }: I
   const layers: Layer[] = [];
 
   if (columns) {
+    const hexes = binActions(actions, current);
+    // Busiest cell tops out around 110 m, whatever the data volume.
+    const tallest = Math.max(1, ...hexes.map((h) => h.count));
     layers.push(
       new H3HexagonLayer<Hex>({
         id: "hex-columns",
-        data: binActions(actions, current),
+        data: hexes,
         ...under(beforeId),
         extruded: true,
         opacity: 0.5,
         coverage: 0.42,
-        elevationScale: 9,
+        elevationScale: 110 / tallest,
         getHexagon: (d) => d.hex,
         getElevation: (d) => d.count,
         getFillColor: (d) => colorFor(d.isUs, d.daysAgo),
