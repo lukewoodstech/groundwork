@@ -15,6 +15,36 @@ const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 // terrain depth buffer (interleaved). Off until that is resolved.
 const TERRAIN = false;
 
+// Pull the dark style toward the panel colour and keep only major street
+// names, so the data is the brightest thing on screen.
+function quietBasemap(map: mapboxgl.Map) {
+  map.setPaintProperty("land", "background-color", "#0e0e10");
+  map.setPaintProperty("landuse", "fill-color", "#111113");
+  map.setPaintProperty("national-park", "fill-color", "#111113");
+  map.setPaintProperty("water", "fill-color", "#0a0a0b");
+  map.setPaintProperty("building", "fill-color", "#131315");
+  map.setPaintProperty("building", "fill-outline-color", "#0e0e10");
+  for (const id of ["road-simple", "bridge-simple", "tunnel-simple"]) {
+    map.setPaintProperty(id, "line-color", "#28282b");
+  }
+  for (const id of ["road-path", "road-path-trail", "road-pedestrian", "road-steps"]) {
+    map.setPaintProperty(id, "line-color", "#1d1d20");
+  }
+  for (const id of ["poi-label", "natural-point-label", "natural-line-label"]) {
+    map.setLayoutProperty(id, "visibility", "none");
+  }
+  // Major road classes only, and no numbered grid names like "3700 N".
+  map.setFilter("road-label-simple", [
+    "all",
+    map.getFilter("road-label-simple") ?? true,
+    ["match", ["get", "class"], ["motorway", "trunk", "primary", "secondary", "tertiary"], true, false],
+    [">", ["slice", ["get", "name"], 0, 1], "9"],
+  ]);
+  map.setPaintProperty("road-label-simple", "text-color", "#8a8a90");
+  map.setPaintProperty("road-label-simple", "text-opacity", 0.7);
+  map.setPaintProperty("settlement-subdivision-label", "text-opacity", 0.7);
+}
+
 type Props = { actions: Action[]; companionships: Companionship[] };
 
 export default function MapView({ actions, companionships }: Props) {
@@ -61,6 +91,8 @@ export default function MapView({ actions, companionships }: Props) {
         "star-intensity": 0,
       });
 
+      quietBasemap(map);
+
       // First symbol layer: everything we add goes underneath the labels.
       const firstLabel = map
         .getStyle()
@@ -74,7 +106,7 @@ export default function MapView({ actions, companionships }: Props) {
           "source-layer": "building",
           minzoom: 13,
           paint: {
-            "fill-extrusion-color": "#1f1f22",
+            "fill-extrusion-color": "#19191c",
             "fill-extrusion-height": 3.5,
             "fill-extrusion-base": 0,
             "fill-extrusion-opacity": 0.95,

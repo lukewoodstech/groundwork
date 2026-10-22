@@ -76,6 +76,10 @@ export default function Timeline() {
           ))}
           <div className="absolute inset-x-7 top-[46px] h-px bg-line-strong" />
           <div
+            className="absolute top-[40px] h-[13px] border-l border-ink bg-ink/10"
+            style={{ left: at(usStart), right: "1.75rem" }}
+          />
+          <div
             className="absolute top-[46px] h-px bg-ink"
             style={{ left: at(usStart), right: "1.75rem" }}
           />

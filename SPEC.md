@@ -72,6 +72,7 @@ type Zone = { id: string; name: string; polygon: [number, number][] } // named s
 
 ### Phase 1: Map, columns, and UI overlay
 - Next.js + TS + Tailwind, Mapbox dark style centered on Edgemont, pitch ~55°, 3D terrain, low flat dark grey buildings.
+  - Note: terrain is off. Mapbox GL v3 terrain misplaces deck.gl layers (overlaid) or hides them behind the terrain depth buffer (interleaved), so we keep the deck.gl stack and skip terrain.
 - Extruded `H3HexagonLayer` using a small mock dataset (a few hundred actions split between Us and Previous elders). Real data comes in Phase 2.
 - Markers for door knocks and street contacts, visually distinct.
 - UI overlay matching the mockup: header, left panel (segmented control + activity filters, both working), right panel placeholder for Plan my day, bottom timeline placeholder.
