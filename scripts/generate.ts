@@ -79,20 +79,21 @@ for (const e of osm.elements) {
 
 // Every walkable street inside the area, as runs of consecutive inside nodes,
 // so the map can draw the ones nobody has walked.
-const streets: LngLat[][] = [];
+const streets: { name: string; path: LngLat[] }[] = [];
 for (const e of osm.elements) {
   if (e.type !== "way" || !WALKABLE.has(e.tags.highway)) continue;
+  const name = e.tags.name ?? "Unnamed street";
   let run: LngLat[] = [];
   for (const id of e.nodes) {
     const p = coord.get(id);
     if (p && inside(p)) {
       run.push(p);
     } else {
-      if (run.length > 1) streets.push(run);
+      if (run.length > 1) streets.push({ name, path: run });
       run = [];
     }
   }
-  if (run.length > 1) streets.push(run);
+  if (run.length > 1) streets.push({ name, path: run });
 }
 
 // Drop tiny disconnected fragments so walks never get stranded. University
@@ -398,7 +399,17 @@ const nearbyCandidates = nodes.filter((n) => {
   const d = turf.pointToLineDistance(coord.get(n)!, nearbyLine as GeoJSON.Feature<GeoJSON.LineString>, { units: "meters" });
   return d > 250 && d < 600;
 });
-const otherNodes = nodes.filter((n) => nodeZone.get(n) !== NEARBY);
+// The other two appointments sit well away from both planted zones, so the
+// 2pm lesson is unambiguously the close one and nothing else looks "nearby".
+const farFrom = (zoneId: string, p: LngLat) =>
+  turf.pointToLineDistance(p, turf.polygonToLine(zonePolys.get(zoneId)!) as GeoJSON.Feature<GeoJSON.LineString>, {
+    units: "meters",
+  }) > 900;
+const otherNodes = nodes.filter((n) => {
+  const z = nodeZone.get(n);
+  const p = coord.get(n)!;
+  return z !== NEARBY && z !== NEGLECTED && farFrom(NEARBY, p) && farFrom(NEGLECTED, p);
+});
 const todayAt = (h: number, m: number) => new Date(dayStart(0) + (h * 60 + m) * 60_000).toISOString();
 
 const appointments: Appointment[] = [

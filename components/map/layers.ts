@@ -1,11 +1,11 @@
 import { H3HexagonLayer } from "@deck.gl/geo-layers";
-import { PathLayer, ScatterplotLayer } from "@deck.gl/layers";
+import { PathLayer, PolygonLayer, ScatterplotLayer } from "@deck.gl/layers";
 import type { Layer } from "@deck.gl/core";
 import { latLngToCell } from "h3-js";
 import { ageColor, PREV, US, type RGB } from "@/lib/colors";
 import { DAY_MS, TODAY } from "@/lib/data/area";
 import type { Segment } from "@/lib/data/segments";
-import type { Action, ActionType } from "@/lib/data/types";
+import type { Action, ActionType, Appointment, Zone } from "@/lib/data/types";
 
 export const HEX_RESOLUTION = 10;
 
@@ -68,16 +68,23 @@ const GLOW: Record<2 | 3, Style> = {
   3: { w: 18, min: 4.5, max: 9, a: 60 },
 };
 
+/** A chosen suggestion: the zone to outline and the walk to it. */
+export type Focus = { zone: Zone; from: [number, number]; route: [number, number][] | null };
+
 type Input = {
   streets: Street[];
   segments: Segment[];
   actions: Action[];
+  appointments: Appointment[];
+  focus: Focus | null;
   current: Set<string>;
   columns: boolean;
   beforeId?: string;
 };
 
-export function buildLayers({ streets, segments, actions, current, columns, beforeId }: Input): Layer[] {
+const WHITE: RGBA = [244, 244, 245, 255];
+
+export function buildLayers({ streets, segments, actions, appointments, focus, current, columns, beforeId }: Input): Layer[] {
   const often = levelThreshold(segments);
   const level = (s: Segment) => levelOf(s.count, often);
   const segColor = (s: Segment) => colorFor(current.has(s.companionshipId), daysAgo(s.lastTime));
@@ -189,5 +196,91 @@ export function buildLayers({ streets, segments, actions, current, columns, befo
     }),
   );
 
+  if (focus) {
+    layers.push(
+      new PolygonLayer<Zone>({
+        id: "focus-zone",
+        data: [focus.zone],
+        ...under(beforeId),
+        filled: true,
+        stroked: true,
+        getPolygon: (d) => d.polygon,
+        getFillColor: [244, 244, 245, 12],
+        getLineColor: WHITE,
+        lineWidthUnits: "pixels",
+        getLineWidth: 1.5,
+      }),
+      new PathLayer<{ path: [number, number][] }>({
+        id: "focus-route",
+        data: dashes(focus.route ?? [focus.from, zoneCentre(focus.zone)]),
+        ...under(beforeId),
+        widthUnits: "pixels",
+        getWidth: 3,
+        capRounded: true,
+        getPath: (d) => d.path,
+        getColor: WHITE,
+      }),
+    );
+  }
+
+  // Today's appointments: small white marks with the time, always on top.
+  layers.push(
+    new ScatterplotLayer<Appointment>({
+      id: "appointments",
+      data: appointments,
+      ...under(beforeId),
+      pickable: true,
+      radiusUnits: "pixels",
+      getRadius: 5.5,
+      filled: true,
+      stroked: true,
+      lineWidthUnits: "pixels",
+      getLineWidth: 2,
+      getPosition: (d) => d.lngLat,
+      getFillColor: WHITE,
+      getLineColor: [9, 9, 10, 255],
+    }),
+  );
+
   return layers;
+}
+
+/** Cut a route into dashes of a fixed length on the ground, in metres. */
+function dashes(route: [number, number][], dash = 14, gap = 9): { path: [number, number][] }[] {
+  const out: { path: [number, number][] }[] = [];
+  const mx = 111_320 * Math.cos((route[0][1] * Math.PI) / 180);
+  const my = 110_540;
+  let on = true;
+  let left = dash;
+  let current: [number, number][] = [route[0]];
+  for (let i = 1; i < route.length; i++) {
+    let a = route[i - 1];
+    const b = route[i];
+    let len = Math.hypot((b[0] - a[0]) * mx, (b[1] - a[1]) * my);
+    while (len > left) {
+      const f = left / len;
+      const p: [number, number] = [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f];
+      if (on) {
+        current.push(p);
+        out.push({ path: current });
+      }
+      on = !on;
+      current = on ? [p] : [];
+      len -= left;
+      left = on ? dash : gap;
+      a = p;
+    }
+    left -= len;
+    if (on) current.push(b);
+  }
+  if (on && current.length > 1) out.push({ path: current });
+  return out;
+}
+
+function zoneCentre(zone: Zone): [number, number] {
+  const n = zone.polygon.length;
+  return [
+    zone.polygon.reduce((s, p) => s + p[0], 0) / n,
+    zone.polygon.reduce((s, p) => s + p[1], 0) / n,
+  ];
 }

@@ -5,10 +5,10 @@ import mapboxgl from "mapbox-gl";
 import { MapboxOverlay } from "@deck.gl/mapbox";
 import type { PickingInfo } from "@deck.gl/core";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { area, bbox, streets } from "@/lib/data";
+import { appointments as todaysAppointments, area, bbox, streets } from "@/lib/data";
 import { walkedSegments } from "@/lib/data/segments";
-import type { Action, Companionship, Walk } from "@/lib/data/types";
-import { buildLayers } from "./layers";
+import type { Action, Appointment, Companionship, Walk } from "@/lib/data/types";
+import { buildLayers, type Focus } from "./layers";
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
@@ -52,6 +52,35 @@ function quietBasemap(map: mapboxgl.Map) {
   map.setPaintProperty("settlement-subdivision-label", "text-opacity", 0.7);
 }
 
+// Time labels beside today's appointments, drawn by Mapbox above everything.
+function addAppointmentLabels(map: mapboxgl.Map) {
+  map.addSource("appointment-labels", {
+    type: "geojson",
+    data: {
+      type: "FeatureCollection",
+      features: todaysAppointments.map((a) => ({
+        type: "Feature",
+        properties: { label: clock(a.time) },
+        geometry: { type: "Point", coordinates: a.lngLat },
+      })),
+    },
+  });
+  map.addLayer({
+    id: "appointment-labels",
+    type: "symbol",
+    source: "appointment-labels",
+    layout: {
+      "text-field": ["get", "label"],
+      "text-font": ["DIN Pro Medium", "Arial Unicode MS Regular"],
+      "text-size": 11,
+      "text-anchor": "left",
+      "text-offset": [1.1, 0],
+      "text-allow-overlap": true,
+    },
+    paint: { "text-color": "#f4f4f5", "text-halo-color": "#0e0e10", "text-halo-width": 1.5 },
+  });
+}
+
 // Thin white border, a faint fill, and a dimming mask over everything outside.
 function addArea(map: mapboxgl.Map, beforeId?: string) {
   const ring = [...area.polygon, area.polygon[0]];
@@ -91,13 +120,19 @@ function addArea(map: mapboxgl.Map, beforeId?: string) {
 type Props = {
   walks: Walk[];
   actions: Action[];
+  appointments: Appointment[];
   companionships: Companionship[];
   columns: boolean;
+  focus: Focus | null;
 };
 
-export default function MapView({ walks, actions, companionships, columns }: Props) {
+const clock = (iso: string) =>
+  new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Denver" });
+
+export default function MapView({ walks, actions, appointments, companionships, columns, focus }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const overlay = useRef<MapboxOverlay | null>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
   const [labelLayerId, setLabelLayerId] = useState<string>();
   const [ready, setReady] = useState(false);
 
@@ -126,6 +161,7 @@ export default function MapView({ walks, actions, companionships, columns }: Pro
       attributionControl: false,
     });
     map.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-left");
+    mapRef.current = map;
 
     map.on("style.load", () => {
       if (TERRAIN) {
@@ -175,44 +211,61 @@ export default function MapView({ walks, actions, companionships, columns }: Pro
 
       overlay.current = new MapboxOverlay({ interleaved: true, layers: [] });
       map.addControl(overlay.current);
+      addAppointmentLabels(map);
       setLabelLayerId(firstLabel);
       setReady(true);
     });
 
     return () => {
       overlay.current = null;
+      mapRef.current = null;
       setReady(false);
       map.remove();
     };
   }, []);
 
+  // Fly to a chosen suggestion: the zone, the appointment, and the walk between.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready || !focus) return;
+    const pts: [number, number][] = [...focus.zone.polygon, focus.from, ...(focus.route ?? [])];
+    map.fitBounds(bbox(pts), { padding: { top: 90, bottom: 190, left: 390, right: 370 }, pitch: PITCH, bearing: BEARING, duration: 1400 });
+  }, [ready, focus]);
+
   useEffect(() => {
     if (!ready || !overlay.current) return;
     overlay.current.setProps({
-      layers: buildLayers({ streets, segments, actions, current, columns, beforeId: labelLayerId }),
-      getTooltip: ({ object, layer }: PickingInfo<Action>) => {
-        if (!object || !layer?.id.startsWith("actions-")) return null;
-        const when = new Date(object.time).toLocaleString("en-US", {
+      layers: buildLayers({ streets, segments, actions, appointments, focus, current, columns, beforeId: labelLayerId }),
+      getTooltip: ({ object, layer }: PickingInfo<Action | Appointment>) => {
+        if (!object || !layer) return null;
+        const style = { background: "#0e0e10", border: "1px solid #262629", padding: "8px 10px" };
+        if (layer.id === "appointments") {
+          const ap = object as Appointment;
+          return {
+            html: `<div style="font:500 12px var(--font-geist-sans),sans-serif;color:#f4f4f5">${ap.label}</div>
+            <div style="font:11px var(--font-geist-mono),monospace;color:#a3a3a8;margin-top:3px">Today · ${clock(ap.time)}</div>`,
+            style,
+          };
+        }
+        if (!layer.id.startsWith("actions-")) return null;
+        const a = object as Action;
+        const when = new Date(a.time).toLocaleString("en-US", {
           month: "short",
           day: "numeric",
           hour: "numeric",
           minute: "2-digit",
           timeZone: "America/Denver",
         });
-        const label = { knock: "Door knock", contact: "Street contact", lesson: "Lesson" }[object.type];
-        const outcome = { none: "", interested: "Interested", lesson_set: "Lesson set" }[object.outcome];
+        const label = { knock: "Door knock", contact: "Street contact", lesson: "Lesson" }[a.type];
+        const outcome = { none: "", interested: "Interested", lesson_set: "Lesson set" }[a.outcome];
         return {
           html: `<div style="font:500 12px var(--font-geist-sans),sans-serif;color:#f4f4f5">${label}</div>
-            <div style="font:11px var(--font-geist-mono),monospace;color:#a3a3a8;margin-top:3px">${names.get(object.companionshipId) ?? ""} · ${when}${outcome ? ` · ${outcome}` : ""}</div>`,
-          style: {
-            background: "#0e0e10",
-            border: "1px solid #262629",
-            padding: "8px 10px",
-          },
+            <div style="font:11px var(--font-geist-mono),monospace;color:#a3a3a8;margin-top:3px">${names.get(a.companionshipId) ?? ""} · ${when}${outcome ? ` · ${outcome}` : ""}</div>`,
+          style,
         };
       },
     });
-  }, [ready, segments, actions, current, columns, labelLayerId, names]);
+  }, [ready, segments, actions, appointments, focus, current, columns, labelLayerId, names]);
 
   if (!TOKEN) {
     return (
