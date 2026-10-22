@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Option A: Grid. A street grid with one route walked through it. -->
+  <path d="M11 2v28M21 2v28M2 11h28M2 21h28" stroke="#fff" stroke-opacity=".3" stroke-width="2"/>
+  <path d="M2 21h9V11h10V2" stroke="#fff" stroke-width="4"/>
+</svg>

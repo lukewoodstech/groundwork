@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Option B: Strata. The same street walked three times; older passes sit behind and fade. -->
+  <path d="M8 24h10V12h14" stroke="#fff" stroke-opacity=".22" stroke-width="3"/>
+  <path d="M5 21h10V9h14" stroke="#fff" stroke-opacity=".5" stroke-width="3"/>
+  <path d="M2 18h10V6h14" stroke="#fff" stroke-width="3"/>
+</svg>

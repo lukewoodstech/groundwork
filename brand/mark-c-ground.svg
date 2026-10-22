@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Option C: Ground. A solid block of ground with one path cut through it. -->
+  <mask id="path">
+    <rect width="32" height="32" fill="#fff"/>
+    <path d="M2 20h10V10h18" stroke="#000" stroke-width="4" fill="none"/>
+  </mask>
+  <rect x="2" y="2" width="28" height="28" fill="#fff" mask="url(#path)"/>
+</svg>
