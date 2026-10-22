@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import { MapboxOverlay } from "@deck.gl/mapbox";
 import type { PickingInfo } from "@deck.gl/core";
@@ -93,10 +93,13 @@ type Props = {
   actions: Action[];
   companionships: Companionship[];
   columns: boolean;
+  /** Fires once the first frame of the basemap has drawn. */
+  onReady?: () => void;
 };
 
-export default function MapView({ walks, actions, companionships, columns }: Props) {
+export default function MapView({ walks, actions, companionships, columns, onReady }: Props) {
   const container = useRef<HTMLDivElement>(null);
+  const notifyReady = useEffectEvent(() => onReady?.());
   const overlay = useRef<MapboxOverlay | null>(null);
   const [labelLayerId, setLabelLayerId] = useState<string>();
   const [ready, setReady] = useState(false);
@@ -126,6 +129,7 @@ export default function MapView({ walks, actions, companionships, columns }: Pro
       attributionControl: false,
     });
     map.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-left");
+    map.once("load", () => notifyReady());
 
     map.on("style.load", () => {
       if (TERRAIN) {
@@ -217,11 +221,11 @@ export default function MapView({ walks, actions, companionships, columns }: Pro
   if (!TOKEN) {
     return (
       <div className="absolute inset-0 grid place-items-center bg-bg">
-        <div className="border border-line bg-panel px-6 py-5 text-center">
-          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">Map unavailable</p>
-          <p className="mt-2 text-sm text-ink-2">
+        <div className="panel-in border border-line bg-panel px-6 py-5 text-center">
+          <p className="label text-ink-3">Map unavailable</p>
+          <p className="mt-2 text-body text-ink-2">
             Add <span className="font-mono text-ink">NEXT_PUBLIC_MAPBOX_TOKEN</span> to{" "}
-            <span className="font-mono text-ink">.env.local</span> and restart.
+            <span className="font-mono text-ink">.env.local</span>, then restart.
           </p>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import { PREV, US, FADED, type RGB } from "@/lib/colors";
+import { formatCount } from "@/lib/format";
 import type { ActionType, Filters, Who } from "@/lib/data/types";
 
 type Props = {
@@ -24,17 +25,20 @@ const rgb = (c: RGB) => `rgb(${c[0]} ${c[1]} ${c[2]})`;
 
 export default function MapViewPanel({ filters, onChange, counts, total }: Props) {
   return (
-    <aside className="pointer-events-auto absolute left-4 top-4 w-[336px] border border-line bg-panel">
-      <div className="flex items-baseline justify-between border-b border-line px-4 py-3">
-        <Label>Map view</Label>
-        <span className="font-mono text-[10px] tracking-[0.1em] text-ink-3">
-          {total} ACTIONS
+    <aside
+      aria-label="Map view"
+      className="panel-in pointer-events-auto absolute left-4 top-4 w-[336px] border border-line bg-panel"
+    >
+      <div className="flex h-11 items-center justify-between border-b border-line px-4">
+        <span className="label">Map view</span>
+        <span className="font-mono text-meta text-ink-3" aria-live="polite">
+          {formatCount(total)} {total === 1 ? "action" : "actions"}
         </span>
       </div>
 
       <section className="px-4 pb-4 pt-3">
-        <Label>Missionaries</Label>
-        <div role="radiogroup" className="mt-2 grid grid-cols-3 border border-line">
+        <span className="label">Walked by</span>
+        <div role="radiogroup" aria-label="Walked by" className="mt-2 grid grid-cols-3 border border-line">
           {WHO.map((w) => {
             const active = filters.who === w.value;
             return (
@@ -44,8 +48,8 @@ export default function MapViewPanel({ filters, onChange, counts, total }: Props
                 role="radio"
                 aria-checked={active}
                 onClick={() => onChange({ ...filters, who: w.value })}
-                className={`h-9 whitespace-nowrap border-r border-line text-[12px] leading-none last:border-r-0 ${
-                  active ? "bg-ink font-medium text-bg" : "text-ink-2 hover:bg-raised"
+                className={`ctl h-9 whitespace-nowrap border-r border-line text-ctl last:border-r-0 ${
+                  active ? "" : "text-ink-2"
                 }`}
               >
                 {w.label}
@@ -56,7 +60,7 @@ export default function MapViewPanel({ filters, onChange, counts, total }: Props
       </section>
 
       <section className="border-t border-line px-4 pb-3 pt-3">
-        <Label>Activity</Label>
+        <span className="label">Activity</span>
         <div className="mt-1">
           {ACTIVITY.map((a) => (
             <Check
@@ -70,38 +74,41 @@ export default function MapViewPanel({ filters, onChange, counts, total }: Props
               }
               label={a.label}
               glyph={<Glyph type={a.value} />}
-              trail={counts[a.value]}
+              trail={formatCount(counts[a.value])}
             />
           ))}
         </div>
       </section>
 
       <section className="border-t border-line px-4 pb-3 pt-3">
-        <Label>Layers</Label>
+        <span className="label">Layers</span>
         <div className="mt-1">
           <Check
             on={filters.columns}
             onToggle={() => onChange({ ...filters, columns: !filters.columns })}
             label="Effort columns"
             glyph={<ColumnGlyph />}
-            trail="H3"
+            trail="3D"
           />
         </div>
       </section>
 
       <section className="border-t border-line px-4 pb-4 pt-3">
-        <Label>Key</Label>
+        <span className="label">Key</span>
         <KeyRow label="Us" color={US} />
         <KeyRow label="Previous elders" color={PREV} />
-        <div className="mt-1 flex justify-between font-mono text-[9px] uppercase tracking-[0.14em] text-ink-3">
+        <div className="mt-1.5 flex justify-between font-mono text-micro uppercase text-ink-3">
           <span>Recent</span>
           <span>Older</span>
         </div>
-        <div className="mt-3 grid grid-cols-4 gap-2 border-t border-line pt-3">
-          <Travel label="Not walked" level={0} />
-          <Travel label="Once" level={1} />
-          <Travel label="A few times" level={2} />
-          <Travel label="Often" level={3} />
+        <div className="mt-3 border-t border-line pt-3">
+          <span className="label text-ink-3">Streets walked</span>
+          <div className="mt-2 grid grid-cols-4 gap-2">
+            <Travel label="Never" level={0} />
+            <Travel label="Once" level={1} />
+            <Travel label="A few times" level={2} />
+            <Travel label="Often" level={3} />
+          </div>
         </div>
       </section>
     </aside>
@@ -122,11 +129,11 @@ function Check({
   trail: React.ReactNode;
 }) {
   return (
-    <label className="flex h-9 cursor-pointer select-none items-center gap-3">
+    <label className="check flex h-9 items-center gap-3">
       <input type="checkbox" className="sr-only" checked={on} onChange={onToggle} />
       <span
         aria-hidden
-        className={`grid h-[14px] w-[14px] place-items-center border ${
+        className={`check-box grid h-[14px] w-[14px] place-items-center border ${
           on ? "border-ink bg-ink" : "border-line-strong"
         }`}
       >
@@ -137,8 +144,10 @@ function Check({
         )}
       </span>
       {glyph}
-      <span className={`flex-1 text-[13px] ${on ? "text-ink" : "text-ink-3"}`}>{label}</span>
-      <span className="font-mono text-[11px] text-ink-3">{trail}</span>
+      <span className={`flex-1 text-body transition-colors duration-150 ${on ? "text-ink" : "text-ink-3"}`}>
+        {label}
+      </span>
+      <span className="font-mono text-meta text-ink-3">{trail}</span>
     </label>
   );
 }
@@ -152,18 +161,10 @@ function ColumnGlyph() {
   );
 }
 
-function Label({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-2">
-      {children}
-    </span>
-  );
-}
-
 function KeyRow({ label, color }: { label: string; color: RGB }) {
   return (
     <div className="mt-2 flex items-center gap-3">
-      <span className="w-[104px] text-[12px] text-ink-2">{label}</span>
+      <span className="w-[104px] text-ctl text-ink-2">{label}</span>
       <span
         className="h-[6px] flex-1"
         style={{ background: `linear-gradient(90deg, ${rgb(color)}, ${rgb(FADED)})` }}

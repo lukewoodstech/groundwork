@@ -11,6 +11,25 @@
   --color-ink-3: #67676d;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Type scale. Six sizes, used everywhere. */
+  --text-micro: 9px; /* mono: timeline ticks */
+  --text-micro--line-height: 1;
+  --text-micro--letter-spacing: 0.14em;
+  --text-label: 10px; /* mono, uppercase: section labels */
+  --text-label--line-height: 1;
+  --text-label--letter-spacing: 0.14em;
+  --text-meta: 11px; /* mono: counts and dates */
+  --text-meta--line-height: 1;
+  --text-ctl: 12px; /* sans: buttons, chips, calendar */
+  --text-ctl--line-height: 1;
+  --text-body: 13px; /* sans: rows and paragraphs */
+  --text-body--line-height: 20px;
+  --text-title: 15px; /* sans, medium: product and card titles */
+  --text-title--line-height: 20px;
+  --text-title--letter-spacing: -0.01em;
+
+  --ease-out: cubic-bezier(0.2, 0.6, 0.2, 1);
 }
 
 /* Sharp corners everywhere, including third-party map controls. */
@@ -33,6 +52,129 @@ body {
 :focus-visible {
   outline: 1px solid var(--color-ink);
   outline-offset: 1px;
+}
+
+@layer components {
+  /* Section label: mono, small caps, grey. */
+  .label {
+    font-family: var(--font-mono), monospace;
+    font-size: var(--text-label);
+    line-height: 1;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-ink-2);
+  }
+
+  /* Every button and chip. Hover, pressed, focus and disabled in one place. */
+  .ctl {
+    cursor: pointer;
+    user-select: none;
+    transition:
+      background-color 150ms var(--ease-out),
+      border-color 150ms var(--ease-out),
+      color 150ms var(--ease-out),
+      opacity 150ms var(--ease-out);
+  }
+  .ctl:hover:not(:disabled):not([aria-checked="true"]):not([aria-pressed="true"]) {
+    background-color: var(--color-raised);
+  }
+  .ctl:active:not(:disabled):not([aria-checked="true"]):not([aria-pressed="true"]) {
+    background-color: var(--color-line);
+  }
+  .ctl:focus-visible {
+    position: relative;
+    z-index: 1;
+    outline: 1px solid var(--color-ink);
+    outline-offset: -1px;
+  }
+  .ctl:disabled {
+    cursor: default;
+    opacity: 0.35;
+  }
+  .ctl[aria-checked="true"],
+  .ctl[aria-pressed="true"] {
+    background-color: var(--color-ink);
+    color: var(--color-bg);
+    font-weight: 500;
+  }
+
+  /* Primary action: inverted. */
+  .ctl-primary {
+    background-color: var(--color-ink);
+    color: var(--color-bg);
+  }
+  .ctl-primary:hover:not(:disabled) {
+    background-color: #ffffff;
+  }
+  .ctl-primary:active:not(:disabled) {
+    background-color: var(--color-ink-2);
+  }
+  .ctl-primary:focus-visible {
+    outline-offset: 2px;
+  }
+
+  /* Checkbox rows: the hidden input's focus shows on the drawn box. */
+  .check {
+    cursor: pointer;
+    user-select: none;
+  }
+  .check-box {
+    transition:
+      background-color 150ms var(--ease-out),
+      border-color 150ms var(--ease-out);
+  }
+  .check:hover .check-box {
+    border-color: var(--color-ink-2);
+  }
+  .check:has(input:focus-visible) .check-box {
+    outline: 1px solid var(--color-ink);
+    outline-offset: 2px;
+  }
+  .check:has(input:disabled) {
+    cursor: default;
+    opacity: 0.35;
+  }
+
+  /* Panels and popovers ease in. */
+  .panel-in {
+    animation: panel-in 200ms var(--ease-out) both;
+  }
+
+  /* Load screen progress line: creeps to 80%, then the app finishes it. */
+  .loader-bar {
+    animation: loader-bar 2400ms var(--ease-out) forwards;
+  }
+}
+
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes loader-bar {
+  from {
+    width: 0;
+  }
+  to {
+    width: 80%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel-in,
+  .loader-bar {
+    animation-duration: 1ms;
+  }
+  .ctl,
+  .check-box {
+    transition: none;
+  }
 }
 
 /* Mapbox chrome, kept quiet and monochrome. */
