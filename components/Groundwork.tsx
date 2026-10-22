@@ -26,9 +26,9 @@ export default function Groundwork() {
     columns: false,
   });
 
-  // Month ending today. The missionary toggle and the time window are
+  // Six months ending today. The missionary toggle and the time window are
   // independent: each narrows the same data.
-  const [time, setTime] = useState<TimeRange>({ period: "month", endDay: 0 });
+  const [time, setTime] = useState<TimeRange>({ period: "6m", endDay: 0 });
   const [start, end] = rangeMs(time);
 
   // Everything by the chosen missionaries, all time. Feeds the calendar dots.

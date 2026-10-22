@@ -54,17 +54,18 @@ export function levelThreshold(segments: Segment[]) {
 
 export const levelOf = (count: number, often: number): Level => (count <= 1 ? 1 : count >= often ? 3 : 2);
 
-// Widths in metres so streets stay crisp zoomed out and thicken as you zoom
-// in. Minimum pixel widths keep the three levels distinct at any zoom, and
-// each level is its own layer because the minimum applies per layer.
-const CORE: Record<Level, { w: number; min: number; a: number }> = {
-  1: { w: 2, min: 0.9, a: 105 },
-  2: { w: 5, min: 1.8, a: 210 },
-  3: { w: 9, min: 3.4, a: 255 },
+// Widths in metres, clamped to a pixel range per level so the three levels
+// stay distinct at every zoom and never swell into neighbouring streets.
+// Each level is its own layer because the clamp applies per layer.
+type Style = { w: number; min: number; max: number; a: number };
+const CORE: Record<Level, Style> = {
+  1: { w: 2, min: 0.8, max: 1.5, a: 110 },
+  2: { w: 5, min: 1.6, max: 3, a: 215 },
+  3: { w: 9, min: 2.6, max: 5, a: 255 },
 };
-const GLOW: Record<2 | 3, { w: number; min: number; a: number }> = {
-  2: { w: 16, min: 5, a: 45 },
-  3: { w: 34, min: 11, a: 110 },
+const GLOW: Record<2 | 3, Style> = {
+  2: { w: 10, min: 3, max: 6, a: 30 },
+  3: { w: 18, min: 4.5, max: 9, a: 60 },
 };
 
 type Input = {
@@ -143,13 +144,14 @@ export function buildLayers({ streets, segments, actions, current, columns, befo
   // width and opacity step up with each level.
   const byLevel: Record<Level, Segment[]> = { 1: [], 2: [], 3: [] };
   for (const s of segments) byLevel[level(s)].push(s);
-  const walked = (id: string, data: Segment[], style: { w: number; min: number; a: number }) =>
+  const walked = (id: string, data: Segment[], style: Style) =>
     new PathLayer<Segment>({
       id,
       data,
       ...under(beforeId),
       widthUnits: "meters",
       widthMinPixels: style.min,
+      widthMaxPixels: style.max,
       jointRounded: true,
       capRounded: true,
       getPath: (d) => d.path,

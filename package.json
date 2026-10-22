@@ -12,7 +12,9 @@
     "validate": "tsx scripts/validate.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.1.0",
     "@deck.gl/core": "^9.4.0",
+    "@deck.gl/extensions": "^9.4.0",
     "@deck.gl/geo-layers": "^9.4.0",
     "@deck.gl/layers": "^9.4.0",
     "@deck.gl/mapbox": "^9.4.0",
