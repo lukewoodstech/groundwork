@@ -211,7 +211,7 @@ export default function MapView({ walks, actions, appointments, companionships, 
       // Frame the whole area, leaving room for the panels.
       const camera = map.cameraForBounds(bounds, { padding: PADDING, bearing: BEARING, pitch: PITCH });
       // cameraForBounds is conservative under pitch; tighten a little.
-      if (camera) map.jumpTo({ ...camera, zoom: (camera.zoom ?? 14) + 0.55, pitch: PITCH, bearing: BEARING });
+      if (camera) map.jumpTo({ ...camera, zoom: (camera.zoom ?? 14) + 0.3, pitch: PITCH, bearing: BEARING });
 
       overlay.current = new MapboxOverlay({ interleaved: true, layers: [] });
       map.addControl(overlay.current);
