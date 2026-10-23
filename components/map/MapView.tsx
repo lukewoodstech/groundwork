@@ -20,7 +20,7 @@ const TERRAIN = false;
 const PITCH = 45;
 const BEARING = -18;
 // Room for the header, panels and timeline when framing the area.
-const PADDING = { top: 70, bottom: 170, left: 372, right: 350 };
+const PADDING = { top: 70, bottom: 240, left: 372, right: 350 };
 
 // Pull the dark style toward the panel colour and keep only major street
 // names, so the data is the brightest thing on screen.

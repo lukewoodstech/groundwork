@@ -113,7 +113,7 @@ export default function Timeline({ time, onChange, activeDays }: Props) {
           })}
         </div>
 
-        <div className="flex border border-line bg-panel">
+        <div className="flex border-l border-line">
           <Arrow dir={-1} disabled={!canBack} onClick={() => step(-1)} />
           <button
             type="button"
