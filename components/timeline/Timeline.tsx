@@ -94,8 +94,8 @@ export default function Timeline({ time, onChange, activeDays }: Props) {
 
   return (
     <div className="panel-in pointer-events-auto mx-auto mb-5 flex w-[min(1040px,calc(100%-2rem))] shrink-0 flex-col items-center gap-3">
-      <div className="relative flex items-stretch gap-3">
-        <div role="radiogroup" aria-label="Window length" className="flex border border-line bg-panel">
+      <div className="relative flex items-stretch border border-line bg-panel">
+        <div role="radiogroup" aria-label="Window length" className="flex">
           {PERIODS.map((p) => {
             const active = p.id === time.period;
             return (
@@ -193,7 +193,7 @@ export default function Timeline({ time, onChange, activeDays }: Props) {
               style={{ left: at(t) }}
             >
               <span className="block h-[7px] w-[7px] rotate-45 border border-ink-2 bg-panel" />
-              <span className="absolute left-1/2 top-[-18px] -translate-x-1/2 whitespace-nowrap font-mono text-micro text-ink-3">
+              <span className="absolute left-1/2 top-[14px] -translate-x-1/2 whitespace-nowrap font-mono text-micro text-ink-3">
                 TRANSFER
               </span>
             </span>

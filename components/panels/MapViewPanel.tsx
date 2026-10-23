@@ -38,7 +38,7 @@ export default function MapViewPanel({ filters, onChange, counts, total }: Props
 
       <section className="px-4 pb-4 pt-3">
         <span className="label">Walked by</span>
-        <div role="radiogroup" aria-label="Walked by" className="mt-2 grid grid-cols-3 border border-line">
+        <div role="radiogroup" aria-label="Walked by" className="mt-2 flex border border-line">
           {WHO.map((w) => {
             const active = filters.who === w.value;
             return (
@@ -48,7 +48,7 @@ export default function MapViewPanel({ filters, onChange, counts, total }: Props
                 role="radio"
                 aria-checked={active}
                 onClick={() => onChange({ ...filters, who: w.value })}
-                className={`ctl h-9 whitespace-nowrap border-r border-line text-ctl last:border-r-0 ${
+                className={`ctl h-9 grow basis-auto whitespace-nowrap border-r border-line px-3 text-ctl last:border-r-0 ${
                   active ? "" : "text-ink-2"
                 }`}
               >
