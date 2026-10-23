@@ -101,7 +101,7 @@ export function buildLayers({ streets, segments, actions, appointments, focus, c
       data,
       ...under(beforeId),
       pickable: true,
-      opacity: 0.55,
+      opacity: 0.32,
       radiusUnits: "meters",
       radiusMinPixels: 1,
       radiusMaxPixels: 5,
