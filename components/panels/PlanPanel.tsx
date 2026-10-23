@@ -50,7 +50,7 @@ export default function PlanPanel({ plan, zoneNames, selectedId, routeNote, onPl
 
       <div className="label flex items-baseline justify-between px-1 text-ink-3">
         <span className="text-ink-2">Suggested for today</span>
-        <span>{pad2(count)} places</span>
+        {plan.status === "done" && <span>{count} {count === 1 ? "place" : "places"}</span>}
       </div>
 
       {plan.status === "idle" && (
